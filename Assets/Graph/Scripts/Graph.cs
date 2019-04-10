@@ -4,7 +4,7 @@ public class Graph : MonoBehaviour {
     public Transform pointPrefab;
     Transform[] points;
     
-    [Range(10,1000)]
+    [Range(10,10000)]
     public int resolution = 10;
     // Start is called before the first frame updaste
     void Awake(){
@@ -28,7 +28,9 @@ public class Graph : MonoBehaviour {
     void Update () {
         for (int i = 0; i < points.Length; i++){
             Transform point = points[i];
-            Vector3 pos = point.transform.localPosition;
+            Vector3 pos = point.localPosition;
+            pos.y = Mathf.Sin(Mathf.PI * (pos.x + Time.time));
+            point.localPosition = pos;
         }
     }
 }
