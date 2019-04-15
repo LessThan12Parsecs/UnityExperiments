@@ -12,7 +12,7 @@ public class Graph : MonoBehaviour {
     public GraphFunctionName functionN = 0;
 
     static GraphFunction[] functions = {
-        SineFunction, MultiSineFunction, Sine2DFunction, MultiSine2DFunction, Ripple
+        SineFunction, MultiSineFunction, Sine2DFunction, MultiSine2DFunction, Ripple, Cylinder, Sphere, Torus
     };
 
     // Start is called before the first frame updaste
@@ -89,4 +89,36 @@ public class Graph : MonoBehaviour {
 		p.z = z;
 		return p;
     }
+
+	static Vector3 Cylinder(float u, float v, float t){
+		Vector3 p;
+		float r = 0.8f + Mathf.Sin(pi* (6f * u + 2f * v + t)) * 0.2f;
+		p.x = r * Mathf.Sin(pi * u);
+		p.y = v;
+		p.z = r * Mathf.Cos(pi * u);
+		return p;
+	}
+
+	static Vector3 Sphere(float u, float v, float t){
+		Vector3 p;
+		float r = 0.8f + Mathf.Cos(pi * (6f * u + t)) * 0.1f;
+		r += Mathf.Sin(pi * (4f * v * u + t)) * 0.1f;
+		float s = r * Mathf.Cos(pi* 0.5f * v);
+		p.x = s * Mathf.Sin(pi * u);
+		p.y = r * Mathf.Sin(pi * 0.5f * v);
+		p.z = s * Mathf.Cos(pi * u);
+		return p;
+	}
+
+		static Vector3 Torus (float u, float v, float t) {
+		Vector3 p;
+		float r1 = 0.65f + Mathf.Sin(pi * (6f * u + t)) * 0.1f;
+		float r2 = 0.2f + Mathf.Sin(pi * (4f * v + t)) * 0.05f;
+		float s = r2 * Mathf.Cos(pi * v) + r1;
+		p.x = s * Mathf.Sin(pi * u);
+		p.y = r2 * Mathf.Sin(pi * v);
+		p.z = s * Mathf.Cos(pi * u);
+		return p;
+	}
+
 }
