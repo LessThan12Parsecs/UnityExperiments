@@ -5,8 +5,7 @@ using System.IO;
 
 public class Game : PersistingObject
 {
-    public PersistingObject prefab;
-
+    public ShapeFactory shapeFactory;
     public KeyCode createKey = KeyCode.C;
     public KeyCode newGameKey = KeyCode.N;
     public KeyCode saveGameKey = KeyCode.S;
@@ -14,16 +13,18 @@ public class Game : PersistingObject
 
     public PersistentStorage storage;
 
-    private List<PersistingObject> objects;
+    private List<Shape> shapes;
+
+    const int saveVersion = 1;
 
     void Awake () {
-        objects = new List<PersistingObject>();
+        shapes = new List<Shape>();
     }
 
     // Update is called once per frame
     void Update () {
         if (Input.GetKeyDown(createKey)) {
-            CreateObject();
+            CreateShape();
         }
         else if (Input.GetKeyDown(newGameKey)) {
             NewGame();
@@ -37,35 +38,43 @@ public class Game : PersistingObject
         }
     }
 
-    void CreateObject () {
-        PersistingObject o = Instantiate(prefab);
-        Transform t = o.transform;
+    void CreateShape () {
+        Shape instance = shapeFactory.GetRandom();
+        Transform t = instance.transform;
         t.localPosition = Random.onUnitSphere * 5f;
         t.localRotation = Random.rotation;
         t.localScale = Vector3.one * Random.Range(0.1f,1f);
-        objects.Add(o);
+        shapes.Add(instance);
     }
 
     void NewGame () {
-        for (int i = 0; i < objects.Count; i++) {
-			Destroy(objects[i].gameObject);
+        for (int i = 0; i < shapes.Count; i++) {
+			Destroy(shapes[i].gameObject);
 		}
-        objects.Clear();
+        shapes.Clear();
     }
 
     public override void Save (GameDataWriter writer) {
-		writer.Write(objects.Count);
-		for (int i = 0; i < objects.Count; i++) {
-			objects[i].Save(writer);
+		writer.Write(-saveVersion);
+		writer.Write(shapes.Count);
+		for (int i = 0; i < shapes.Count; i++) {
+            writer.Write(shapes[i].ShapeId);
+			shapes[i].Save(writer);
 		}
 	}
 
     public override void Load (GameDataReader reader) {
-		int count = reader.ReadInt();
+		int version = -reader.ReadInt();
+        if (version > saveVersion) {
+            Debug.LogError("SaveFile version is higher than current game version " + version);
+            return;
+        }
+		int count = version <= 0 ? -version : reader.ReadInt();
 		for (int i = 0; i < count; i++) {
-			PersistingObject o = Instantiate(prefab);
-			o.Load(reader);
-			objects.Add(o);
+            int shapeId = version > 0 ? reader.ReadInt() : 0;
+			Shape instance = shapeFactory.Get(shapeId);
+			instance.Load(reader);
+			shapes.Add(instance);
 		}
 	}
 }
