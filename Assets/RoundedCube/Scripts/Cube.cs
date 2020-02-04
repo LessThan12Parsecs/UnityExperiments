@@ -4,77 +4,102 @@ using UnityEngine;
 [RequireComponent(typeof (MeshRenderer), typeof (MeshFilter))]
 public class Cube : MonoBehaviour{
     
-    public int xSize, ySize; //, zSize;
+    public int xSize, ySize, zSize;
     private Mesh mesh;
     private Vector3[] vertices;
     
     void Awake(){
-        Generate();
+        Generate(); 
     }
     private void Generate(){
 
-        WaitForSeconds wait = new WaitForSeconds(0.5f);
+        WaitForSeconds wait = new WaitForSeconds(0.1f);
         GetComponent<MeshFilter>().mesh = mesh = new Mesh();
         mesh.name = "Procedural Cube";
+        CreateVertices();
+        CreateTriangles();
+    }
 
-        // int corners = 8;
-        // int edgeVertices = 4 * (xSize + ySize + zSize - 3);
-        // int faceVertices = 2 * ((xSize-1) * (ySize-1) + (ySize-1) * (zSize-1) + (xSize-1) * (zSize-1));
-        // vertices = new Vector3[corners+edgeVertices+faceVertices];
+    private void CreateVertices(){
+        int corners = 8;
+        int edgeVertices = 4 * (xSize + ySize + zSize - 3);
+        int faceVertices = 2 * (
+            (xSize - 1) * (ySize - 1) 
+            + (ySize - 1) * (zSize - 1) 
+            + (xSize - 1) * (zSize - 1));
+        vertices = new Vector3[corners + edgeVertices + faceVertices];
 
-        vertices = new Vector3[(xSize + 1) * (ySize + 1)];
-        Vector2[] uv = new Vector2[vertices.Length];
-        Vector4[] tangents = new Vector4[vertices.Length];
-        Vector4 tangent = new Vector4(1f, 0f, 0f, -1f);
+        int v = 0;
+        for (int y = 0; y <= ySize; y++){
+            for (int x = 0; x <= xSize; x++){
+                vertices[v++] = new Vector3(x,y,0);
+            }
+            for (int z = 1; z <= zSize; z++) {
+                vertices[v++] = new Vector3(xSize, y, z);
+            }
 
-        // int v = 0;
-        // for (int x = 0; x <= xSize; x++){
-        //     vertices[v++] = new Vector3(x,0,0);
-        // }
-        // for (int z = 1; z <= zSize; z++) {
-		// 	vertices[v++] = new Vector3(xSize, 0, z);
-		// 	yield return wait;
-		// }
-		// for (int x = xSize - 1; x >= 0; x--) {
-		// 	vertices[v++] = new Vector3(x, 0, zSize);
-		// 	yield return wait;
-		// }
-		// for (int z = zSize - 1; z > 0; z--) {
-		// 	vertices[v++] = new Vector3(0, 0, z);
-		// 	yield return wait;
-		// }
-        // yield return wait;
-        for (int i = 0, y = 0; y <= ySize; y++) {
-            for (int x = 0; x <= xSize; x++,i++) {
-                vertices[i] = new Vector3(x,y);
-                uv[i] = new Vector2((float)x / xSize, (float)y /ySize);
-                tangents[i] = tangent;
+            for (int x = xSize - 1; x >= 0; x--) {
+                vertices[v++] = new Vector3(x, y, zSize);
+            }
+
+            for (int z = zSize - 1; z > 0; z--) {
+                vertices[v++] = new Vector3(0, y, z);
             }
         }
+        for (int z = 1; z < zSize; z++) {
+			for (int x = 1; x < xSize; x++) {
+				vertices[v++] = new Vector3(x, ySize, z);
+			}
+		}
+		for (int z = 1; z < zSize; z++) {
+			for (int x = 1; x < xSize; x++) {
+				vertices[v++] = new Vector3(x, 0, z);
+			}
+		}
         mesh.vertices = vertices;
-        mesh.uv = uv;
-        mesh.tangents = tangents;
+    }
 
-        int[] triangles = new int[xSize * ySize * 6];
-        for (int ti = 0, vi = 0, y = 0; y < ySize; y++, vi++) {
-            for (int x = 0; x <xSize; x++, ti+= 6, vi++){
-                triangles[ti] = vi;
-                triangles[ti + 3] = triangles[ti + 2] = vi + 1;
-                triangles[ti + 4] = triangles[ti + 1] = vi + xSize + 1;
-                triangles[ti + 5] = vi + xSize + 2;      
-            }       
+    private void CreateTriangles() {
+        int quads = (xSize * ySize + xSize * zSize + ySize * zSize) * 2;
+        int [] triangles = new int[quads * 6];
+        int ring = (xSize + zSize) * 2;
+        int t = 0, v = 0;
+        for (int y = 0; y < ySize; y++, v++){
+            for (int q = 0; q < ring - 1; q++, v++) {
+                t = SetQuad(triangles, t, v, v + 1, v + ring, v + ring + 1);
+            }
+
+            t = SetQuad(triangles, t, v, v - ring + 1, v + ring, v + 1);
         }
+
+        t = CreateTopFace(triangles, t, ring);
         mesh.triangles = triangles;
-        mesh.RecalculateNormals();
+    }
+
+    private int CreateTopFace (int[] triangles, int t, int ring) {
+        int v = ring * ySize;
+        for (int x = 0; x < xSize - 1; x++, v++) {
+            t = SetQuad(triangles, t, v, v + 1, v + ring - 1, v + ring);
+        }
+        t = SetQuad(triangles, t, v, v + 1, v + ring - 1, v + 2);
+        return t;
+    }
+
+    private static int SetQuad(int[] triangles, int i, int v00, int v10, int v01, int v11) {
+        triangles[i] = v00;
+        triangles[i + 1] = triangles[i + 4] = v01;
+        triangles[i + 2] = triangles[i + 3] = v10;
+        triangles[i + 5] = v11;
+        return i + 6;
     }
     // Update is called once per frame
-    private void OnDrawGizmos(){
-        if (vertices == null){
+    private void OnDrawGizmos() {
+        if (vertices == null) {
             return;
         }
         Gizmos.color = Color.black;
-        for (int i = 0; i < vertices.Length; i++){
-            Gizmos.DrawSphere(vertices[i],0.1f);
+        for (int i = 0; i < vertices.Length; i++) {
+            Gizmos.DrawSphere(vertices[i],0.05f);
         }
     }
 }
